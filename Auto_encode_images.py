@@ -1,0 +1,66 @@
+
+from matplotlib.pyplot import imshow
+import numpy as np
+import cv2
+from keras.preprocessing.image import img_to_array
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
+from tensorflow.keras.models import Sequential
+
+
+SIZE=256  #limit for most of the laptops
+img_data=[]
+
+img=cv2.imread('Data/einstein_original.jpg', 1)   #Change 1 to 0 for Grey scale images
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  #Changing BGR to RGB to show images in true colors
+img=cv2.resize(img,(SIZE, SIZE))
+img_data.append(img_to_array(img))
+
+img_array = np.reshape(img_data, (len(img_data), SIZE, SIZE, 3))
+img_array = img_array.astype('float32') / 255.
+
+
+img_data2=[]  #Second image for testing. 
+
+img2=cv2.imread('Data/monalisa_original.jpg', 1)   #Change 1 to 0 for Grey scale images
+img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)#Changing BGR to RGB to show images in true colors
+img2=cv2.resize(img2,(SIZE, SIZE))
+img_data2.append(img_to_array(img2))
+
+img_array2 = np.reshape(img_data2, (len(img_data2), SIZE, SIZE, 3))
+img_array2 = img_array2.astype('float32') / 255.
+
+#Define Autoencoder model. 
+
+model = Sequential()
+model.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=(SIZE, SIZE, 3)))
+model.add(MaxPooling2D((2, 2), padding='same'))
+model.add(Conv2D(8, (3, 3), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2), padding='same'))
+model.add(Conv2D(8, (3, 3), activation='relu', padding='same'))
+ 
+
+model.add(MaxPooling2D((2, 2), padding='same'))
+     
+model.add(Conv2D(8, (3, 3), activation='relu', padding='same'))
+model.add(UpSampling2D((2, 2)))
+model.add(Conv2D(8, (3, 3), activation='relu', padding='same'))
+model.add(UpSampling2D((2, 2)))
+model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
+model.add(UpSampling2D((2, 2)))
+model.add(Conv2D(3, (3, 3), activation='relu', padding='same'))
+
+model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+model.summary()
+
+model.fit(img_array, img_array2,
+        epochs=3000,                  #1000s of epochs needed for good results. Should Use GPU.
+        shuffle=True)           #Shuffle data for each epoch
+
+
+print("Output")
+pred = model.predict(img_array)   #Predict model on the same input array.
+
+
+imshow(pred[0].reshape(SIZE,SIZE,3), cmap="gray")
+
+
